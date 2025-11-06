@@ -215,3 +215,45 @@ app.get('/api/funcionarios/buscar/nombre', async (req, res) => {
     res.status(500).send('Error en el servidor');
   }
 });
+
+app.get('/api/funcionarios/buscar', async (req, res) => {
+  try {
+    const { nroDocumento } = req.query;
+
+    if (!nroDocumento) {
+      return res.status(400).json({ error: 'El parámetro "nroDocumento" es obligatorio.' });
+    }
+
+    let queryText = 'SELECT * FROM personal WHERE ci = $1';
+    let queryParams = [nroDocumento];
+
+    const resultado = await pool.query(queryText, queryParams);
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontró ningún funcionario con ese CI.' });
+    }
+
+    const transformedData = resultado.rows.map(row => {
+      return {
+        nroDocumento: row.ci.trim(),
+        nroEscalafon: row.escalafon.trim(),
+        nombres: row.nombres.trim(),
+        primerApellido: row.paterno.trim(),
+        segundoApellido: row.materno.trim(),
+        grado: row.grado.trim(),
+        unidad: row.unidad.trim(),
+        cargo: row.cargo.trim(),
+        procesoDisciplinario: row.proceso !== "0" && row.proceso !== "" ? true : false,
+        destino: row.destino.trim()
+      };
+    });
+
+    res.json(transformedData);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Error en el servidor');
+  }
+});
+
+
